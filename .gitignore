@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>3D 列印品質檢測</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image"></script>
+</head>
+<body>
+    <h2>3D 列印品質檢測 - AI 辨識</h2>
+    <input type="file" id="imageUpload" accept="image/*">
+    <br><br>
+    <img id="uploadedImage" width="300" style="display:none;">
+    <p id="result">請上傳圖片進行檢測</p>
+    
+    <script>
+        const modelURL = "YOUR_MODEL_URL/model.json";
+        const metadataURL = "YOUR_MODEL_URL/metadata.json";
+        let model;
+        
+        async function loadModel() {
+            model = await tmImage.load(modelURL, metadataURL);
+            console.log("AI 模型已載入");
+        }
+        loadModel();
+        
+        document.getElementById("imageUpload").addEventListener("change", async function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const img = document.getElementById("uploadedImage");
+                img.src = e.target.result;
+                img.style.display = "block";
+                
+                const imageElement = new Image();
+                imageElement.src = e.target.result;
+                imageElement.onload = async function() {
+                    const prediction = await model.predict(imageElement);
+                    let maxIndex = 0;
+                    for (let i = 1; i < prediction.length; i++) {
+                        if (prediction[i].probability > prediction[maxIndex].probability) {
+                            maxIndex = i;
+                        }
+                    }
+                    document.getElementById("result").innerText = `分類結果：${prediction[maxIndex].className} (機率: ${Math.round(prediction[maxIndex].probability * 100)}%)`;
+                };
+            };
+            reader.readAsDataURL(file);
+        });
+    </script>
+</body>
+</html>
